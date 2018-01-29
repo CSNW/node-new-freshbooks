@@ -1,0 +1,35 @@
+{
+  "name": "new-freshbooks",
+  "version": "0.0.1",
+  "description": "Node.js client for the new FreshBooks API",
+  "main": "freshbooks.js",
+  "scripts": {
+    "test": "mocha tests.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CSNW/node-new-freshbooks.git"
+  },
+  "keywords": [
+    "freshbooks",
+    "api",
+    "client",
+    "mock",
+    "server"
+  ],
+  "author": "prust",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/CSNW/node-new-freshbooks/issues"
+  },
+  "homepage": "https://github.com/CSNW/node-new-freshbooks#readme",
+  "dependencies": {
+    "request": "^2.83.0",
+    "underscore": "^1.8.3"
+  },
+  "devDependencies": {
+    "chai": "^4.1.2",
+    "dotenv": "^4.0.0",
+    "mocha": "^5.0.0"
+  }
+}
