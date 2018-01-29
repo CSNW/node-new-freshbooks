@@ -3,6 +3,8 @@
 Node.js client for the new FreshBooks API.
 
 ```javascript
+  var FreshBooks = require('new-freshbooks');
+  
   var client_id = process.env.FBOOKS_CLIENT_ID;
   var client_secret = process.env.FBOOKS_CLIENT_SECRET;
   var code = process.env.FBOOKS_CODE;
