@@ -1,0 +1,16 @@
+language: node_js
+node_js:
+- stable
+addons:
+  sauce_connect:
+    username: stephen.schutt
+install:
+  - npm install
+script:
+  - "./node_modules/.bin/wdio --host $SAUCE_USERNAME:$SAUCE_ACCESS_KEY@localhost --port 4445 wdio.conf.js"
+  - npm test
+env:
+  global:
+    - token_url: https://api.freshbooks.com/auth/oauth/token
+notifications:
+  email: false
