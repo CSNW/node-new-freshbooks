@@ -18,7 +18,7 @@ FreshBooks.prototype.me = function(callback) {
     required_props.forEach(function(prop) {
       if (!(prop in me))
         throw new Error('Required property "' + prop + '" not found in /me: ' + JSON.stringify(me));
-      
+
       var expected_type = prop == 'id' ? 'number' : 'string';
       if (typeof me[prop] != expected_type)
         throw new Error('me.' + prop + ' is not a ' + expected_type + ': ' + JSON.stringify(me[prop]));
@@ -61,6 +61,20 @@ FreshBooks.prototype.getProjects = function(business_id, callback) {
   });
 };
 
+FreshBooks.prototype.pushTimeEntry = function(business_id, data, callback) {
+  data.method = 'post';
+  this._request(`timetracking/business/${business_id}/time_entries`, data, callback);
+}
+
+FreshBooks.prototype.listTimeEntries = function(business_id, callback) {
+  this._request(`timetracking/business/${business_id}/time_entries`, null, callback);
+}
+
+FreshBooks.prototype.removeTimeEntry = function(business_id, time_entry_id, callback) {
+  var data = {method: 'delete'};
+  this._request(`timetracking/business/${business_id}/time_entries/${time_entry_id}`, data, callback);
+}
+
 FreshBooks.prototype._request = function(path, data, callback) {
   var headers = {
     'Authorization': `Bearer ${this.access_token}`,
@@ -70,17 +84,28 @@ FreshBooks.prototype._request = function(path, data, callback) {
   // only add Content-Type application/json if we're sending JSON
   // if we add it when we're not sending any data, the API responds with
   // HTTP 400: The browser (or proxy) sent a request that this server could not understand.
-  if (data)
-    headers['Content-Type'] = 'application/json';
+  var method = 'get';
+  if (data) {
+      headers['content-type'] = 'application/json';
+      method = data.method;
+  }
 
-  request('https://api.freshbooks.com/' + path, {headers: headers}, function(err, res, body) {
+  request({
+    url: 'https://api.freshbooks.com/' + path,
+    headers: headers,
+    json: data,
+    method: method
+  }, function(err, res, body) {
+    if (!err && res.statusCode == 204 && data.method == 'delete')
+      return callback(null, 'Success');
     if (!err && res.statusCode != 200)
-      err = new Error('HTTP Error ' + res.statusCode + ': ' + body);
+      err = new Error('HTTP Error ' + res.statusCode + ': ' + (typeof body == 'string' ? body : JSON.stringify(body)));
     if (err)
       return callback(err);
 
     try {
-      body = JSON.parse(body)
+      if (typeof body == 'string')
+        body = JSON.parse(body)
     }
     catch(err) {
       return callback(new Error('Unable to parse JSON: ' + body));

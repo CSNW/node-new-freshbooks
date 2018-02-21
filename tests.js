@@ -1,15 +1,17 @@
 require('dotenv').load();
 
+var _ = require('underscore');
 var chai = require('chai');
 var fs = require('fs');
 var FreshBooks = require('./freshbooks.js');
 var request = require('request');
 
-describe('fresbooks', function() {
+describe('freshbooks', function() {
   this.timeout(1000 * 20);
 
   var token;
   var freshbooks;
+  var biz_id, project_id, time_entry_id;
   it('should get an access token correctly', function(done) {
     var code = fs.readFileSync('code.txt').toString();
     request({
@@ -49,14 +51,53 @@ describe('fresbooks', function() {
   it('should get the projects for a business', function(done) {
     freshbooks.me(function(err, me) {
       if (err) return done(err);
-      var biz_id = me.business_ids[0];
+      biz_id = me.business_ids[0];
       freshbooks.getProjects(biz_id, function(err, projects) {
         if (err) return done(err);
 
+        project_id = projects[0].id;
         chai.assert.ok(projects.length);
         chai.assert.ok(projects[0].id);
         done();
       });
+    });
+  });
+
+  it('should push time correctly', function(done) {
+    freshbooks.pushTimeEntry(biz_id, {
+      time_entry: {
+          is_logged: true,
+          duration: 720,
+          note: 'Stuff',
+          started_at: '2018-02-14T20:00:00.000Z'
+      }
+    }, function(err, result) {
+      if (err) return done(err);
+
+      time_entry_id = result.time_entry.id;
+      chai.assert.ok(time_entry_id);
+      done();
+    });
+  });
+
+  it('should list new time ', function(done) {
+    freshbooks.listTimeEntries(biz_id, function(err, result) {
+      if (err) return done(err);
+
+      var time_entries = result.time_entries;
+      chai.assert.ok(time_entries.length);
+      var time_entry_ids = _(time_entries).pluck('id');
+      chai.assert.notEqual(time_entry_ids.indexOf(time_entry_id), -1);
+      done();
+    });
+  });
+
+  it('should delete time correctly', function(done) {
+    freshbooks.removeTimeEntry(biz_id, time_entry_id, function(err, res) {
+      if (err) return done(err);
+
+      chai.assert.equal(res, 'Success');
+      done();
     });
   });
 });

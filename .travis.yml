@@ -13,4 +13,9 @@ env:
   global:
     - token_url: https://api.freshbooks.com/auth/oauth/token
 notifications:
-  email: false
+  email:
+    recipients:
+      - peter@cornerstonenw.com
+      - stephen.schutt@cornerstonenw.com
+    on_success: change
+    on_error: always
