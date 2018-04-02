@@ -1,6 +1,8 @@
 language: node_js
 node_js:
-- stable
+- "8"
+- "6"
+- "4"
 addons:
   sauce_connect:
     username: stephen.schutt
@@ -18,4 +20,4 @@ notifications:
       - peter@cornerstonenw.com
       - stephen.schutt@cornerstonenw.com
     on_success: change
-    on_error: always
+    on_failure: always

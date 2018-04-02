@@ -4,8 +4,7 @@
   "description": "Node.js client for the new FreshBooks API",
   "main": "freshbooks.js",
   "scripts": {
-    "test": "./node_modules/.bin/mocha tests.js",
-    "gen_token": "node ./generate_token.js true"
+    "test": "./node_modules/.bin/mocha tests.js"
   },
   "repository": {
     "type": "git",
@@ -25,15 +24,13 @@
   },
   "homepage": "https://github.com/CSNW/node-new-freshbooks#readme",
   "dependencies": {
-    "chai": "^4.1.2",
-    "underscore": "^1.8.3",
-    "wdio": "1.0.3",
-    "wdio-mocha-framework": "^0.5.12"
+
   },
   "devDependencies": {
     "chai": "4.1.2",
     "dotenv": "4.0.0",
     "mocha": "5.0.0",
-    "request": "2.83.0"
+    "request": "2.83.0",
+    "underscore": "^1.8.3"
   }
 }

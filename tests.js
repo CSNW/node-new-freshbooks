@@ -12,8 +12,11 @@ describe('freshbooks', function() {
   var token;
   var freshbooks;
   var biz_id, project_id, time_entry_id;
-  it('should get an access token correctly', function(done) {
-    var code = fs.readFileSync('code.txt').toString();
+
+  function initializeRefreshToken(done) {
+    if (!process.env.code) return done(new Error('process.env.code required but not supplied'));
+
+    var code = process.env.code.trim();
     request({
       method: 'POST',
       url: process.env.token_url,
@@ -33,10 +36,44 @@ describe('freshbooks', function() {
         done(new Error(body.error + ' ' + JSON.stringify(body)));
       }
       else {
+        fs.writeFileSync('refreshToken.txt', body.refresh_token);
         freshbooks = new FreshBooks(body.access_token, body.refresh_token);
         done();
       }
     });
+  }
+
+  before(function(done) {
+    if (fs.existsSync('refreshToken.txt')) {
+      var refresh_token = fs.readFileSync('refreshToken.txt').toString().trim();
+      request({
+        method: 'POST',
+        url: process.env.token_url,
+        headers: {
+          'content-type': 'application/json',
+          'Api-Version': 'alpha'
+        },
+        json: {
+          grant_type: 'refresh_token',
+          client_secret: process.env.client_secret,
+          refresh_token: refresh_token,
+          client_id: process.env.client_id,
+          redirect_uri:'https://localhost:8081/fbooks-callback'
+        }
+      }, function(err, response, body) {
+        if (!body.refresh_token) {
+          initializeRefreshToken(done);
+        }
+        else {
+          freshbooks = new FreshBooks(body.access_token, body.refresh_token);
+          fs.writeFileSync('refreshToken.txt', body.refresh_token);
+          done();
+        }
+      });
+    }
+    else {
+      initializeRefreshToken(done);
+    }
   });
 
   it('should get the current user data', function(done) {
