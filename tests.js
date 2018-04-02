@@ -17,6 +17,7 @@ describe('freshbooks', function() {
     if (!process.env.code) return done(new Error('process.env.code required but not supplied'));
 
     var code = process.env.code.trim();
+    console.log(code);
     request({
       method: 'POST',
       url: process.env.token_url,
@@ -46,6 +47,7 @@ describe('freshbooks', function() {
   before(function(done) {
     if (fs.existsSync('refreshToken.txt')) {
       var refresh_token = fs.readFileSync('refreshToken.txt').toString().trim();
+      console.log(refresh_token);
       request({
         method: 'POST',
         url: process.env.token_url,
@@ -65,6 +67,7 @@ describe('freshbooks', function() {
           initializeRefreshToken(done);
         }
         else {
+          console.log(body.refresh_token)
           freshbooks = new FreshBooks(body.access_token, body.refresh_token);
           fs.writeFileSync('refreshToken.txt', body.refresh_token);
           done();
