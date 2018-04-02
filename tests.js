@@ -17,6 +17,7 @@ describe('freshbooks', function() {
     if (!process.env.code) return done(new Error('process.env.code required but not supplied'));
 
     var code = process.env.code.trim();
+    console.log(code)
     request({
       method: 'POST',
       url: process.env.token_url,
