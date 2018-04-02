@@ -9,7 +9,6 @@ addons:
 install:
   - npm install
 script:
-  - "./node_modules/.bin/wdio --host $SAUCE_USERNAME:$SAUCE_ACCESS_KEY@localhost --port 4445 wdio.conf.js"
   - npm test
 env:
   global:
