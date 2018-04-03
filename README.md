@@ -14,7 +14,7 @@ Node.js client for the new FreshBooks API.
   FreshBooks.getTokens(client_id, client_secret, code, function(err, access_token, refresh_token) {
     if (err) throw err;
 
-    // once you have tokens for a user, they should be saved & re-used\
+    // once you have tokens for a user, they should be saved & re-used
     // whenever you need to use the API on behalf of that user
     var freshbooks = new FreshBooks(access_token, refresh_token);
     freshbooks.me(function(err, me) {
