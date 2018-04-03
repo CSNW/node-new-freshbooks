@@ -2,22 +2,41 @@ require('dotenv').load();
 
 var _ = require('underscore');
 var chai = require('chai');
+var firebase = require('firebase');
 var fs = require('fs');
 var FreshBooks = require('./freshbooks.js');
 var request = require('request');
+
+
 
 describe('freshbooks', function() {
   this.timeout(1000 * 20);
 
   var token;
-  var freshbooks;
+  var freshbooks, db;
   var biz_id, project_id, time_entry_id;
 
-  function initializeRefreshToken(done) {
-    if (!process.env.code) return done(new Error('process.env.code required but not supplied'));
+  function initFirebase(callback) {
+    var config = {
+      apiKey: process.env.FIREBASE_API_KEY,
+      databaseURL: process.env.FIREBASE_DB_URL
+    };
+    firebase.initializeApp(config);
+    firebase.auth().signInWithEmailAndPassword(
+      process.env.FIREBASE_USERNAME,
+      process.env.FIREBASE_PASSWORD
+    ).catch(function(error) {
+      callback(new Error(error.message));
+    }).then(function() {
+      db = firebase.database();
+      callback();
+    });
+  }
 
-    var code = process.env.code.trim();
-    console.log(code);
+  function initializeRefreshToken(env_data, done) {
+    if (!env_data.code) return done(new Error('process.env.code required but not supplied'));
+
+    var code = env_data.code.trim();
     request({
       method: 'POST',
       url: process.env.token_url,
@@ -37,46 +56,59 @@ describe('freshbooks', function() {
         done(new Error(body.error + ' ' + JSON.stringify(body)));
       }
       else {
-        fs.writeFileSync('refreshToken.txt', body.refresh_token);
-        freshbooks = new FreshBooks(body.access_token, body.refresh_token);
+        setTokens(body);
         done();
       }
     });
   }
 
+  function setTokens(body) {
+    db.ref('env_data').set({refresh_token: body.refresh_token});
+    freshbooks = new FreshBooks(body.access_token, body.refresh_token);
+  }
+
   before(function(done) {
-    if (fs.existsSync('refreshToken.txt')) {
-      var refresh_token = fs.readFileSync('refreshToken.txt').toString().trim();
-      console.log(refresh_token);
-      request({
-        method: 'POST',
-        url: process.env.token_url,
-        headers: {
-          'content-type': 'application/json',
-          'Api-Version': 'alpha'
-        },
-        json: {
-          grant_type: 'refresh_token',
-          client_secret: process.env.client_secret,
-          refresh_token: refresh_token,
-          client_id: process.env.client_id,
-          redirect_uri:'https://localhost:8081/fbooks-callback'
-        }
-      }, function(err, response, body) {
-        if (!body.refresh_token) {
-          initializeRefreshToken(done);
-        }
-        else {
-          console.log(body.refresh_token)
-          freshbooks = new FreshBooks(body.access_token, body.refresh_token);
-          fs.writeFileSync('refreshToken.txt', body.refresh_token);
-          done();
-        }
+    initFirebase(function(err) {
+      if (err) return done(err);
+
+      db.ref('env_data').once('value').then(function(data) {
+        var env_data = data.val();
+        request({
+          method: 'POST',
+          url: process.env.token_url,
+          headers: {
+            'content-type': 'application/json',
+            'Api-Version': 'alpha'
+          },
+          json: {
+            grant_type: 'refresh_token',
+            client_secret: process.env.client_secret,
+            refresh_token: env_data.refresh_token,
+            client_id: process.env.client_id,
+            redirect_uri:'https://localhost:8081/fbooks-callback'
+          }
+        }, function(err, response, body) {
+          if (!body.refresh_token) {
+            initializeRefreshToken(env_data, done);
+          }
+          else {
+            setTokens(body);
+            done();
+          }
+        });
       });
-    }
-    else {
-      initializeRefreshToken(done);
-    }
+    });
+  });
+
+  after(function(done) {
+    firebase.auth().signOut()
+     .catch(function (err) {
+       firebase.database().goOffline();
+       done(new Error(err.message));
+     }).then(function() {
+       firebase.database().goOffline();
+       done();
+     });
   });
 
   it('should get the current user data', function(done) {
