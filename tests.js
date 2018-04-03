@@ -32,7 +32,7 @@ describe('freshbooks', function() {
       callback();
     });
   }
-  
+
   function setTokens(body) {
     db.ref('env_data').set({refresh_token: body.refresh_token});
     freshbooks = new FreshBooks(body.access_token, body.refresh_token);
@@ -62,7 +62,7 @@ describe('freshbooks', function() {
         }
         request({
           method: 'POST',
-          url: process.env.token_url,
+          url: process.env.base_url,
           headers: {
             'content-type': 'application/json',
             'Api-Version': 'alpha'
@@ -72,6 +72,9 @@ describe('freshbooks', function() {
           if (body && body.refresh_token) {
             setTokens(body);
             done();
+          }
+          else if (err) {
+            done(err);
           }
           else {
             done(new Error('No refresh_token in response: ' + JSON.stringify(body)));
