@@ -34,7 +34,7 @@ describe('freshbooks', function() {
   }
 
   function initializeRefreshToken(env_data, done) {
-    if (!env_data.code) return done(new Error('process.env.code required but not supplied'));
+    if (!env_data.code) return done(new Error('expired or invalid refresh_token & no env_data.code supplied'));
 
     var code = env_data.code.trim();
     request({
