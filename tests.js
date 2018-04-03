@@ -100,6 +100,31 @@ describe('freshbooks', function() {
       if (err) return done(err);
 
       chai.assert.ok(me.id);
+      var required_props = ['id', 'first_name', 'last_name', 'email'];
+      required_props.forEach(function(prop) {
+        chai.assert.ok(me[prop], 'Required property "' + prop + '" not found in /me: ' + JSON.stringify(me));
+
+        var expected_type = prop == 'id' ? 'number' : 'string';
+        chai.assert.typeOf(
+          me[prop],
+          expected_type,
+          'me.' + prop + ' is not a ' + expected_type + ': ' + JSON.stringify(me[prop]));
+      });
+
+      me.business_memberships.map(function(biz_membership) {
+        chai.assert.ok(
+          biz_membership.business && _.isObject(biz_membership.business),
+          'Expected me.business_memberships to have a .business object: ' + JSON.stringify(biz_membership));
+
+        chai.assert.typeOf(
+          biz_membership.business.id,
+          'number',
+          'Expected me.business_memberships.business.id to be a number: ' + JSON.stringify(biz_membership.business)
+        );
+        biz_membership.business.id;
+      });
+
+      chai.assert.ok(me.subscription_statuses);
       done();
     });
   });
@@ -107,13 +132,37 @@ describe('freshbooks', function() {
   it('should get the projects for a business', function(done) {
     freshbooks.me(function(err, me) {
       if (err) return done(err);
-      biz_id = me.business_ids[0];
-      freshbooks.getProjects(biz_id, function(err, projects) {
+      biz_id = me.business_memberships[0].business.id;
+      freshbooks.getProjects(biz_id, function(err, projects, meta) {
         if (err) return done(err);
 
-        project_id = projects[0].id;
         chai.assert.ok(projects.length);
-        chai.assert.ok(projects[0].id);
+        projects.forEach(function(project) {
+          chai.assert.ok(project.id);
+          chai.assert.typeOf(project.id, 'number');
+
+          chai.assert.ok(project.title);
+          chai.assert.typeOf(project.title, 'string');
+
+          chai.assert.ok(project.updated_at);
+          chai.assert.typeOf(project.updated_at, 'string');
+
+          chai.assert.ok(project.active);
+          chai.assert.typeOf(project.active, 'boolean');
+
+          /*
+          fails right now because client_id is null
+          chai.assert.ok(project.client_id);
+          chai.assert.typeOfproject.client_id, 'number');
+          */
+        });
+
+        chai.assert.ok(meta.pages);
+        chai.assert.typeOf(meta.pages, 'number');
+
+        chai.assert.ok(meta.page);
+        chai.assert.typeOf(meta.page, 'number');
+
         done();
       });
     });
@@ -136,7 +185,7 @@ describe('freshbooks', function() {
     });
   });
 
-  it('should list new time ', function(done) {
+  it('should list new time', function(done) {
     freshbooks.listTimeEntries(biz_id, function(err, result) {
       if (err) return done(err);
 

@@ -14,50 +14,19 @@ FreshBooks.prototype.me = function(callback) {
     if (err) return callback(err);
 
     var me = data.response;
-    var required_props = ['id', 'first_name', 'last_name', 'email'];
-    required_props.forEach(function(prop) {
-      if (!(prop in me))
-        throw new Error('Required property "' + prop + '" not found in /me: ' + JSON.stringify(me));
-
-      var expected_type = prop == 'id' ? 'number' : 'string';
-      if (typeof me[prop] != expected_type)
-        throw new Error('me.' + prop + ' is not a ' + expected_type + ': ' + JSON.stringify(me[prop]));
-    });
-
-    if (!me.business_memberships || !_.isArray(me.business_memberships))
-      throw new Error('Expected me.business_memberships to be an array: ' + JSON.stringify(me.business_memberships));
-
-    var business_ids = me.business_memberships.map(function(biz_membership) {
-      if (!biz_membership.business || !_.isObject(biz_membership.business))
-        throw new Error('Expected me.business_memberships to have a .business object: ' + JSON.stringify(biz_membership));
-
-      if (typeof biz_membership.business.id != 'number')
-        throw new Error('Expected me.business_memberships.business.id to be a number: ' + JSON.stringify(biz_membership.business));
-
-      return biz_membership.business.id;
-    });
-
-    var me = _.pick(me, required_props);
-    me.business_ids = business_ids;
-
     callback(null, me);
   });
 };
 
-FreshBooks.prototype.getProjects = function(business_id, callback) {
-  this._get(`projects/business/${business_id}/projects`, function(err, data) {
+FreshBooks.prototype.getProjects = function(business_id, page, callback) {
+  if (!callback) {
+    callback = page;
+    page = 1;
+  }
+  this._get(`projects/business/${business_id}/projects?page=${page}`, function(err, data) {
     if (err) return callback(err);
 
-    // TODO: support data.meta.pages > 1
-    var projects = data.projects.map(function(proj) {
-      if (typeof proj.id != 'number')
-        throw new Error('Expected project to have a numeric id: ' + JSON.stringify(proj));
-      if (typeof proj.title != 'string')
-        throw new Error('Expected project to have a title: ' + JSON.stringify(proj));
-      return {id: proj.id, title: proj.title};
-    });
-
-    callback(null, projects);
+    callback(null, data.projects, data.meta);
   });
 };
 
@@ -71,6 +40,10 @@ FreshBooks.prototype.listTimeEntries = function(business_id, callback) {
 
 FreshBooks.prototype.removeTimeEntry = function(business_id, time_entry_id, callback) {
   this._delete(`timetracking/business/${business_id}/time_entries/${time_entry_id}`, callback);
+}
+
+FreshBooks.prototype.loadProjectsForBiz = function(business_id, page, callback) {
+  this._get(`/projects/business/${business_id}/projects?page=${page}`, callback);
 }
 
 FreshBooks.prototype._parseErrorResponse = function(res) {
