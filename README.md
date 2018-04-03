@@ -9,8 +9,8 @@ Node.js client for the new FreshBooks API.
   var client_secret = process.env.FBOOKS_CLIENT_SECRET;
   var code = process.env.FBOOKS_CODE;
 
-  // tokens are meant to be retrieved only once, after getting an auth code via
-  // navigating to an authorize link on https://my.freshbooks.com/#/developer in a browser
+  // tokens are meant to be retrieved only once, after manually getting an auth code via
+  // navigating to the authorize link listed on https://my.freshbooks.com/#/developer in a browser
   FreshBooks.getTokens(client_id, client_secret, code, function(err, access_token, refresh_token) {
     if (err) throw err;
 
