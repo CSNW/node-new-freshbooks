@@ -32,36 +32,7 @@ describe('freshbooks', function() {
       callback();
     });
   }
-
-  function initializeRefreshToken(env_data, done) {
-    if (!env_data.code) return done(new Error('expired or invalid refresh_token & no env_data.code supplied'));
-
-    var code = env_data.code.trim();
-    request({
-      method: 'POST',
-      url: process.env.base_url,
-      headers: {
-        'content-type': 'application/json',
-        'Api-Version': 'alpha'
-      },
-      json: {
-        grant_type: 'authorization_code',
-        client_secret: process.env.client_secret,
-        code: code,
-        client_id: process.env.client_id,
-        redirect_uri: 'https://localhost:8081/fbooks-callback'
-      }
-    }, function(err, response, body) {
-      if (!body.refresh_token) {
-        done(new Error(body.error + ' ' + JSON.stringify(body)));
-      }
-      else {
-        setTokens(body);
-        done();
-      }
-    });
-  }
-
+  
   function setTokens(body) {
     db.ref('env_data').set({refresh_token: body.refresh_token});
     freshbooks = new FreshBooks(body.access_token, body.refresh_token);
@@ -73,6 +44,22 @@ describe('freshbooks', function() {
 
       db.ref('env_data').once('value').then(function(data) {
         var env_data = data.val();
+        var data = {
+          client_secret: process.env.client_secret,
+          client_id: process.env.client_id,
+          redirect_uri:'https://localhost:8081/fbooks-callback'
+        };
+        if (env_data.refresh_token) {
+          data.grant_type = 'refresh_token';
+          data.refresh_token = env_data.refresh_token;
+        }
+        else if (env_data.code) {
+          data.grant_type = 'authorization_code';
+          data.code = env_data.code;
+        }
+        else {
+          return done(new Error('env_data must have refresh_token or authorization_code supplied'));
+        }
         request({
           method: 'POST',
           url: process.env.token_url,
@@ -80,20 +67,14 @@ describe('freshbooks', function() {
             'content-type': 'application/json',
             'Api-Version': 'alpha'
           },
-          json: {
-            grant_type: 'refresh_token',
-            client_secret: process.env.client_secret,
-            refresh_token: env_data.refresh_token,
-            client_id: process.env.client_id,
-            redirect_uri:'https://localhost:8081/fbooks-callback'
-          }
+          json: data
         }, function(err, response, body) {
-          if (!(body || {}).refresh_token) {
-            initializeRefreshToken(env_data, done);
-          }
-          else {
+          if (body && body.refresh_token) {
             setTokens(body);
             done();
+          }
+          else {
+            done(new Error('No refresh_token in response: ' + JSON.stringify(body)));
           }
         });
       });
