@@ -39,7 +39,7 @@ describe('freshbooks', function() {
     var code = env_data.code.trim();
     request({
       method: 'POST',
-      url: process.env.token_url,
+      url: process.env.base_url,
       headers: {
         'content-type': 'application/json',
         'Api-Version': 'alpha'

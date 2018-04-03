@@ -10,7 +10,7 @@ function FreshBooks(access_token, refresh_token) {
 }
 
 FreshBooks.prototype.me = function(callback) {
-  this._request('auth/api/v1/users/me', null, function(err, data) {
+  this._get('auth/api/v1/users/me', function(err, data) {
     if (err) return callback(err);
 
     var me = data.response;
@@ -45,7 +45,7 @@ FreshBooks.prototype.me = function(callback) {
 };
 
 FreshBooks.prototype.getProjects = function(business_id, callback) {
-  this._request(`projects/business/${business_id}/projects`, null, function(err, data) {
+  this._get(`projects/business/${business_id}/projects`, function(err, data) {
     if (err) return callback(err);
 
     // TODO: support data.meta.pages > 1
@@ -62,57 +62,74 @@ FreshBooks.prototype.getProjects = function(business_id, callback) {
 };
 
 FreshBooks.prototype.pushTimeEntry = function(business_id, data, callback) {
-  data.method = 'post';
-  this._request(`timetracking/business/${business_id}/time_entries`, data, callback);
+  this._post(`timetracking/business/${business_id}/time_entries`, data, callback);
 }
 
 FreshBooks.prototype.listTimeEntries = function(business_id, callback) {
-  this._request(`timetracking/business/${business_id}/time_entries`, null, callback);
+  this._get(`timetracking/business/${business_id}/time_entries`, callback);
 }
 
 FreshBooks.prototype.removeTimeEntry = function(business_id, time_entry_id, callback) {
-  var data = {method: 'delete'};
-  this._request(`timetracking/business/${business_id}/time_entries/${time_entry_id}`, data, callback);
+  this._delete(`timetracking/business/${business_id}/time_entries/${time_entry_id}`, callback);
 }
 
-FreshBooks.prototype._request = function(path, data, callback) {
-  var headers = {
-    'Authorization': `Bearer ${this.access_token}`,
-    'Api-Version': 'alpha'
-  };
+FreshBooks.prototype._parseErrorResponse = function(res) {
+  var body = res.body;
+  return 'HTTP Error ' + res.statusCode + ': ' + (typeof body == 'string' ? body : JSON.stringify(body));
+}
 
-  // only add Content-Type application/json if we're sending JSON
-  // if we add it when we're not sending any data, the API responds with
-  // HTTP 400: The browser (or proxy) sent a request that this server could not understand.
-  var method = 'get';
-  if (data) {
-      headers['content-type'] = 'application/json';
-      method = data.method;
-  }
+FreshBooks.prototype._isSuccessCode = function(res) {
+  var statusCode = res.statusCode.toString();
+  return statusCode[0] == '2';
+}
 
-  request({
-    url: 'https://api.freshbooks.com/' + path,
-    headers: headers,
-    json: data,
-    method: method
-  }, function(err, res, body) {
-    if (!err && res.statusCode == 204 && data.method == 'delete')
-      return callback(null, 'Success');
-    if (!err && res.statusCode != 200)
-      err = new Error('HTTP Error ' + res.statusCode + ': ' + (typeof body == 'string' ? body : JSON.stringify(body)));
+FreshBooks.prototype._delete = function(url, callback) {
+  this._request({url: url, method: 'delete'}, function(err, res, body) {
     if (err)
       return callback(err);
+    else if (!err && !this._isSuccessCode(res))
+      return callback(new Error(this._parseErrorResponse(res)));
+    else
+      return callback(null, 'Success');
+  }.bind(this));
+}
 
-    try {
-      if (typeof body == 'string')
-        body = JSON.parse(body)
-    }
-    catch(err) {
-      return callback(new Error('Unable to parse JSON: ' + body));
-    }
+FreshBooks.prototype._get = function(url, callback) {
+  this._request({url: url}, function(err, res, body) {
+    if (err)
+      return callback(err);
+    else if (!err && !this._isSuccessCode(res))
+      return callback(new Error(this._parseErrorResponse(res)));
+    else
+      return callback(null, JSON.parse(body));
+  }.bind(this));
+}
 
-    callback(null, body);
-  });
+FreshBooks.prototype._post = function(url, data, callback) {
+  this._request({
+    url: url,
+    method: 'post',
+    headers: {
+      'content-type': 'application/json'
+    },
+    json: data
+  }, function(err, res, body) {
+    if (err)
+      return callback(err);
+    else if (!err && !this._isSuccessCode(res))
+      return callback(new Error(this._parseErrorResponse(res)));
+    else
+      return callback(null, body);
+  }.bind(this));
+}
+
+FreshBooks.prototype._request = function(opts, callback) {
+  opts.headers = opts.headers || {};
+  opts.headers['Authorization'] = 'Bearer ' + this.access_token;
+  opts.headers['Api-Version'] = 'alpha';
+  opts.url = 'https://api.freshbooks.com/' + opts.url
+
+  request(opts, callback);
 };
 
 FreshBooks.getTokens = function(client_id, client_secret, code, callback) {

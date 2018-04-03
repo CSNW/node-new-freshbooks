@@ -9,7 +9,7 @@ script:
   - npm test
 env:
   global:
-    - token_url: https://api.freshbooks.com/auth/oauth/token
+    - base_url: https://api.freshbooks.com/auth/oauth/token
 notifications:
   email:
     recipients:
