@@ -88,7 +88,7 @@ describe('freshbooks', function() {
             redirect_uri:'https://localhost:8081/fbooks-callback'
           }
         }, function(err, response, body) {
-          if (!body.refresh_token) {
+          if (!(body || {}).refresh_token) {
             initializeRefreshToken(env_data, done);
           }
           else {
