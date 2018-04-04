@@ -60,7 +60,7 @@ FreshBooks.prototype._delete = function(url, callback) {
   this._request({url: url, method: 'delete'}, function(err, res, body) {
     if (err)
       return callback(err);
-    else if (!err && !this._isSuccessCode(res))
+    else if (!err && !(res.statusCode >= 200 && res.statusCode < 300))
       return callback(new Error(this._parseErrorResponse(res)));
     else
       return callback(null, 'Success');
@@ -71,7 +71,7 @@ FreshBooks.prototype._get = function(url, callback) {
   this._request({url: url}, function(err, res, body) {
     if (err)
       return callback(err);
-    else if (!err && !this._isSuccessCode(res))
+    else if (!err && !(res.statusCode >= 200 && res.statusCode < 300))
       return callback(new Error(this._parseErrorResponse(res)));
     else
       return callback(null, JSON.parse(body));
@@ -89,7 +89,7 @@ FreshBooks.prototype._post = function(url, data, callback) {
   }, function(err, res, body) {
     if (err)
       return callback(err);
-    else if (!err && !this._isSuccessCode(res))
+    else if (!err && !(res.statusCode >= 200 && res.statusCode < 300))
       return callback(new Error(this._parseErrorResponse(res)));
     else
       return callback(null, body);
@@ -120,7 +120,7 @@ FreshBooks.getTokens = function(client_id, client_secret, code, callback) {
   };
 
   request({uri: auth_url, headers: headers, method: 'POST', body: JSON.stringify(data)}, function(err, res, body) {
-    if (!err && res.statusCode != 200)
+    if (!err && !(res.statusCode >= 200 && res.statusCode < 300))
       err = new Error('HTTP Error ' + res.statusCode + ': ' + body);
     if (err)
       return callback(err);
