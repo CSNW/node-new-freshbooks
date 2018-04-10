@@ -16,12 +16,9 @@ describe('freshbooks', function() {
   var biz_id, project_id, time_entry_id;
 
   function initFirebase(callback) {
-    var private_key = '-----BEGIN PRIVATE KEY-----';
-    private_key += process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n');
-    private_key += '-----END PRIVATE KEY-----';
     admin.initializeApp({
       credential: admin.credential.cert({
-        private_key: private_key,
+        private_key: Buffer.from(process.env.FIREBASE_PRIVATE_KEY, 'base64').toString('ascii'),
         project_id: process.env.FIREBASE_PROJECT_ID,
         client_email: process.env.FIREBASE_CLIENT_EMAIL
       }),
