@@ -6,8 +6,7 @@ var firebase = require('firebase');
 var fs = require('fs');
 var FreshBooks = require('./freshbooks.js');
 var request = require('request');
-
-
+var admin = require('firebase-admin');
 
 describe('freshbooks', function() {
   this.timeout(1000 * 20);
@@ -17,20 +16,33 @@ describe('freshbooks', function() {
   var biz_id, project_id, time_entry_id;
 
   function initFirebase(callback) {
-    var config = {
-      apiKey: process.env.FIREBASE_API_KEY,
+    admin.initializeApp({
+      credential: admin.credential.cert({
+        projectId: process.env.FIREBASE_PROJECT_ID,
+        clientEmail: process.env.FIREBASE_SERVICE_ACCT,
+        private_key: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n')
+      }),
       databaseURL: process.env.FIREBASE_DB_URL
-    };
-    firebase.initializeApp(config);
-    firebase.auth().signInWithEmailAndPassword(
-      process.env.FIREBASE_USERNAME,
-      process.env.FIREBASE_PASSWORD
-    ).catch(function(error) {
-      callback(new Error(error.message));
-    }).then(function() {
-      db = firebase.database();
-      callback();
     });
+
+    var uid = 'node-new-freshbooks-tests';
+    admin.auth().createCustomToken(uid)
+      .then(function(token) {
+        var config = {
+          apiKey: process.env.FIREBASE_API_KEY,
+          databaseURL: process.env.FIREBASE_DB_URL
+        };
+        firebase.initializeApp(config);
+        firebase.auth().signInWithCustomToken(token).then(function() {
+          db = firebase.database();
+          callback();
+        }).catch(function(error) {
+          callback(new Error(error.message));
+        })
+      })
+      .catch(function(error) {
+        callback(new Error(error.message));
+      });
   }
 
   function setTokens(body) {
