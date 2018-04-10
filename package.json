@@ -4,8 +4,7 @@
   "description": "Node.js client for the new FreshBooks API",
   "main": "freshbooks.js",
   "scripts": {
-    "test": "./node_modules/.bin/mocha tests.js",
-    "gen-token": "node ./gen-token.js"
+    "test": "./node_modules/.bin/mocha tests.js"
   },
   "repository": {
     "type": "git",
