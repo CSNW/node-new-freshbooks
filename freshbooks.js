@@ -47,11 +47,6 @@ FreshBooks.prototype._parseErrorResponse = function(res) {
   return 'HTTP Error ' + res.statusCode + ': ' + (typeof body == 'string' ? body : JSON.stringify(body));
 }
 
-FreshBooks.prototype._isSuccessCode = function(res) {
-  var statusCode = res.statusCode.toString();
-  return statusCode[0] == '2';
-}
-
 FreshBooks.prototype._delete = function(url, callback) {
   this._request({url: url, method: 'delete'}, function(err, res, body) {
     if (err)
