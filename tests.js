@@ -3,6 +3,7 @@ require('dotenv').load();
 var _ = require('underscore');
 var chai = require('chai');
 var firebase = require('firebase');
+var admin = require('firebase-admin');
 var fs = require('fs');
 var FreshBooks = require('./freshbooks.js');
 var request = require('request');
@@ -15,17 +16,30 @@ describe('freshbooks', function() {
   var biz_id, project_id, time_entry_id;
 
   function initFirebase(callback) {
-      var config = {
-        apiKey: process.env.FIREBASE_API_KEY,
-        databaseURL: process.env.FIREBASE_DB_URL
-      };
-      firebase.initializeApp(config);
-      firebase.auth().signInWithCustomToken(process.env.FIREBASE_TOKEN).then(function() {
-        db = firebase.database();
-        callback();
-      }).catch(function(error) {
-        callback(new Error(error.message));
+    admin.initializeApp({
+      credential: admin.credential.cert({
+        private_key: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+        project_id: process.env.FIREBASE_PROJECT_ID,
+        client_email: process.env.FIREBASE_CLIENT_EMAIL
+      }),
+      databaseURL: process.env.FIREBASE_DB_URL
+    });
+    admin.auth().createCustomToken('node-new-freshbooks-tests')
+      .then(function(token) {
+        firebase.initializeApp({
+          apiKey: process.env.FIREBASE_API_KEY,
+          databaseURL: process.env.FIREBASE_DB_URL
+        });
+        firebase.auth().signInWithCustomToken(token).then(function() {
+          db = firebase.database();
+          callback();
+        }).catch(function(error) {
+          callback(new Error(error.message));
+        });
       })
+      .catch(function(error) {
+        callback(new Error(error.message));
+      });
   }
 
   function setTokens(body) {
@@ -90,8 +104,8 @@ describe('freshbooks', function() {
      });
   });
 
-  it('should get the current user data', function(done) {
-    freshbooks.me(function(err, me) {
+  it('should get the raw current user data', function(done) {
+    freshbooks.me({raw: true}, function(err, me) {
       if (err) return done(err);
 
       chai.assert.ok(me.id);
@@ -124,8 +138,30 @@ describe('freshbooks', function() {
     });
   });
 
-  it('should get the projects for a business', function(done) {
+  it('should get the massaged current user data', function(done) {
     freshbooks.me(function(err, me) {
+      if (err) return done(err);
+
+      chai.assert.ok(me.id);
+      var required_props = ['id', 'first_name', 'last_name', 'email'];
+      required_props.forEach(function(prop) {
+        chai.assert.ok(me[prop], 'Required property "' + prop + '" not found in /me: ' + JSON.stringify(me));
+
+        var expected_type = prop == 'id' ? 'number' : 'string';
+        chai.assert.typeOf(
+          me[prop],
+          expected_type,
+          'me.' + prop + ' is not a ' + expected_type + ': ' + JSON.stringify(me[prop]));
+      });
+
+      chai.assert.deepEqual(me.business_ids, [471883]);
+      chai.assert.deepEqual(me.active_business_ids, [471883]);
+      done();
+    });
+  });
+
+  it('should get the projects for a business', function(done) {
+    freshbooks.me({raw: true}, function(err, me) {
       if (err) return done(err);
       biz_id = me.business_memberships[0].business.id;
       freshbooks.getProjects(biz_id, function(err, projects, meta) {

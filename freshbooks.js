@@ -9,13 +9,38 @@ function FreshBooks(access_token, refresh_token) {
   this.refresh_token = refresh_token;
 }
 
-FreshBooks.prototype.me = function(callback) {
+FreshBooks.prototype.me = function(opts, callback) {
+  if (!callback) {
+    callback = opts;
+    opts = {};
+  }
+
   this._get('auth/api/v1/users/me', function(err, data) {
     if (err) return callback(err);
 
     var me = data.response;
+    if (!opts.raw)
+      me = this._processMe(me);
+
     callback(null, me);
+  }.bind(this));
+};
+
+FreshBooks.prototype._processMe = function(me) {
+  var required_props = ['id', 'first_name', 'last_name', 'email'];
+  var business_ids = me.business_memberships.map(function(biz_membership) {
+    return biz_membership.business.id;
   });
+  var active_business_ids = _(me.business_memberships).filter(function(biz_membership) {
+    return me.subscription_statuses[biz_membership.business.account_id] == 'active';
+  }).map(function(biz_membership) {
+    return biz_membership.business.id;
+  });
+
+  me = _.pick(me, required_props);
+  me.business_ids = business_ids;
+  me.active_business_ids = active_business_ids;
+  return me;
 };
 
 FreshBooks.prototype.getProjects = function(business_id, page, callback) {
