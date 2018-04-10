@@ -42,10 +42,6 @@ FreshBooks.prototype.removeTimeEntry = function(business_id, time_entry_id, call
   this._delete(`timetracking/business/${business_id}/time_entries/${time_entry_id}`, callback);
 }
 
-FreshBooks.prototype.loadProjectsForBiz = function(business_id, page, callback) {
-  this._get(`/projects/business/${business_id}/projects?page=${page}`, callback);
-}
-
 FreshBooks.prototype._parseErrorResponse = function(res) {
   var body = res.body;
   return 'HTTP Error ' + res.statusCode + ': ' + (typeof body == 'string' ? body : JSON.stringify(body));
@@ -116,7 +112,7 @@ FreshBooks.getTokens = function(client_id, client_secret, code, callback) {
     client_id: client_id,
     client_secret: client_secret,
     code: code,
-    redirect_uri: "https://localhost:8081/fbooks-callback"
+    redirect_uri: 'https://localhost:8081/fbooks-callback'
   };
 
   request({uri: auth_url, headers: headers, method: 'POST', body: JSON.stringify(data)}, function(err, res, body) {
