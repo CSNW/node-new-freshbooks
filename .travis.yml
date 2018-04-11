@@ -1,0 +1,19 @@
+language: node_js
+node_js:
+- "8"
+- "6"
+- "4"
+install:
+  - npm install
+script:
+  - npm test
+env:
+  global:
+    - base_url: https://api.freshbooks.com/auth/oauth/token
+notifications:
+  email:
+    recipients:
+      - peter@cornerstonenw.com
+      - stephen.schutt@cornerstonenw.com
+    on_success: change
+    on_failure: always

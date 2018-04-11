@@ -9,85 +9,116 @@ function FreshBooks(access_token, refresh_token) {
   this.refresh_token = refresh_token;
 }
 
-FreshBooks.prototype.me = function(callback) {
-  this._request('auth/api/v1/users/me', null, function(err, data) {
+FreshBooks.prototype.me = function(opts, callback) {
+  if (!callback) {
+    callback = opts;
+    opts = {};
+  }
+
+  this._get('auth/api/v1/users/me', function(err, data) {
     if (err) return callback(err);
 
     var me = data.response;
-    var required_props = ['id', 'first_name', 'last_name', 'email'];
-    required_props.forEach(function(prop) {
-      if (!(prop in me))
-        throw new Error('Required property "' + prop + '" not found in /me: ' + JSON.stringify(me));
-      
-      var expected_type = prop == 'id' ? 'number' : 'string';
-      if (typeof me[prop] != expected_type)
-        throw new Error('me.' + prop + ' is not a ' + expected_type + ': ' + JSON.stringify(me[prop]));
-    });
-
-    if (!me.business_memberships || !_.isArray(me.business_memberships))
-      throw new Error('Expected me.business_memberships to be an array: ' + JSON.stringify(me.business_memberships));
-
-    var business_ids = me.business_memberships.map(function(biz_membership) {
-      if (!biz_membership.business || !_.isObject(biz_membership.business))
-        throw new Error('Expected me.business_memberships to have a .business object: ' + JSON.stringify(biz_membership));
-
-      if (typeof biz_membership.business.id != 'number')
-        throw new Error('Expected me.business_memberships.business.id to be a number: ' + JSON.stringify(biz_membership.business));
-
-      return biz_membership.business.id;
-    });
-
-    var me = _.pick(me, required_props);
-    me.business_ids = business_ids;
+    if (!opts.raw)
+      me = this._processMe(me);
 
     callback(null, me);
-  });
+  }.bind(this));
 };
 
-FreshBooks.prototype.getProjects = function(business_id, callback) {
-  this._request(`projects/business/${business_id}/projects`, null, function(err, data) {
+FreshBooks.prototype._processMe = function(me) {
+  var required_props = ['id', 'first_name', 'last_name', 'email'];
+  var business_ids = me.business_memberships.map(function(biz_membership) {
+    return biz_membership.business.id;
+  });
+  var active_business_ids = _(me.business_memberships).filter(function(biz_membership) {
+    return me.subscription_statuses[biz_membership.business.account_id] == 'active';
+  }).map(function(biz_membership) {
+    return biz_membership.business.id;
+  });
+
+  me = _.pick(me, required_props);
+  me.business_ids = business_ids;
+  me.active_business_ids = active_business_ids;
+  return me;
+};
+
+FreshBooks.prototype.getProjects = function(business_id, page, callback) {
+  if (!callback) {
+    callback = page;
+    page = 1;
+  }
+  this._get(`projects/business/${business_id}/projects?page=${page}`, function(err, data) {
     if (err) return callback(err);
 
-    // TODO: support data.meta.pages > 1
-    var projects = data.projects.map(function(proj) {
-      if (typeof proj.id != 'number')
-        throw new Error('Expected project to have a numeric id: ' + JSON.stringify(proj));
-      if (typeof proj.title != 'string')
-        throw new Error('Expected project to have a title: ' + JSON.stringify(proj));
-      return {id: proj.id, title: proj.title};
-    });
-
-    callback(null, projects);
+    callback(null, data.projects, data.meta);
   });
 };
 
-FreshBooks.prototype._request = function(path, data, callback) {
-  var headers = {
-    'Authorization': `Bearer ${this.access_token}`,
-    'Api-Version': 'alpha'
-  };
+FreshBooks.prototype.pushTimeEntry = function(business_id, data, callback) {
+  this._post(`timetracking/business/${business_id}/time_entries`, data, callback);
+}
 
-  // only add Content-Type application/json if we're sending JSON
-  // if we add it when we're not sending any data, the API responds with
-  // HTTP 400: The browser (or proxy) sent a request that this server could not understand.
-  if (data)
-    headers['Content-Type'] = 'application/json';
+FreshBooks.prototype.listTimeEntries = function(business_id, callback) {
+  this._get(`timetracking/business/${business_id}/time_entries`, callback);
+}
 
-  request('https://api.freshbooks.com/' + path, {headers: headers}, function(err, res, body) {
-    if (!err && res.statusCode != 200)
-      err = new Error('HTTP Error ' + res.statusCode + ': ' + body);
+FreshBooks.prototype.removeTimeEntry = function(business_id, time_entry_id, callback) {
+  this._delete(`timetracking/business/${business_id}/time_entries/${time_entry_id}`, callback);
+}
+
+FreshBooks.prototype._parseErrorResponse = function(res) {
+  var body = res.body;
+  return 'HTTP Error ' + res.statusCode + ': ' + (typeof body == 'string' ? body : JSON.stringify(body));
+}
+
+FreshBooks.prototype._delete = function(url, callback) {
+  this._request({url: url, method: 'delete'}, function(err, res, body) {
     if (err)
       return callback(err);
+    else if (!err && !(res.statusCode >= 200 && res.statusCode < 300))
+      return callback(new Error(this._parseErrorResponse(res)));
+    else
+      return callback(null, 'Success');
+  }.bind(this));
+}
 
-    try {
-      body = JSON.parse(body)
-    }
-    catch(err) {
-      return callback(new Error('Unable to parse JSON: ' + body));
-    }
+FreshBooks.prototype._get = function(url, callback) {
+  this._request({url: url}, function(err, res, body) {
+    if (err)
+      return callback(err);
+    else if (!err && !(res.statusCode >= 200 && res.statusCode < 300))
+      return callback(new Error(this._parseErrorResponse(res)));
+    else
+      return callback(null, JSON.parse(body));
+  }.bind(this));
+}
 
-    callback(null, body);
-  });
+FreshBooks.prototype._post = function(url, data, callback) {
+  this._request({
+    url: url,
+    method: 'post',
+    headers: {
+      'content-type': 'application/json'
+    },
+    json: data
+  }, function(err, res, body) {
+    if (err)
+      return callback(err);
+    else if (!err && !(res.statusCode >= 200 && res.statusCode < 300))
+      return callback(new Error(this._parseErrorResponse(res)));
+    else
+      return callback(null, body);
+  }.bind(this));
+}
+
+FreshBooks.prototype._request = function(opts, callback) {
+  opts.headers = opts.headers || {};
+  opts.headers['Authorization'] = 'Bearer ' + this.access_token;
+  opts.headers['Api-Version'] = 'alpha';
+  opts.url = 'https://api.freshbooks.com/' + opts.url
+
+  request(opts, callback);
 };
 
 FreshBooks.getTokens = function(client_id, client_secret, code, callback) {
@@ -101,11 +132,11 @@ FreshBooks.getTokens = function(client_id, client_secret, code, callback) {
     client_id: client_id,
     client_secret: client_secret,
     code: code,
-    redirect_uri: "https://localhost:8081/fbooks-callback"
+    redirect_uri: 'https://localhost:8081/fbooks-callback'
   };
 
   request({uri: auth_url, headers: headers, method: 'POST', body: JSON.stringify(data)}, function(err, res, body) {
-    if (!err && res.statusCode != 200)
+    if (!err && !(res.statusCode >= 200 && res.statusCode < 300))
       err = new Error('HTTP Error ' + res.statusCode + ': ' + body);
     if (err)
       return callback(err);
