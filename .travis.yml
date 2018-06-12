@@ -5,6 +5,7 @@ node_js:
 - "4"
 install:
   - npm install
+  - npm list || true
 script:
   - npm test
 env:
