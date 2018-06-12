@@ -5,8 +5,7 @@ node_js:
 - "4"
 install:
   - npm install
-  - npm prune
-  - npm ls
+  - npm ls --silent
 script:
   - npm test
 env:
