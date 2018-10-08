@@ -155,7 +155,7 @@ describe('freshbooks', function() {
       });
 
       chai.assert.deepEqual(me.business_ids, [471883]);
-      chai.assert.deepEqual(me.active_business_ids, [471883]);
+      chai.assert.deepEqual(me.active_business_ids, []);
       done();
     });
   });
