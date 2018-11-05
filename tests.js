@@ -224,6 +224,12 @@ describe('freshbooks', function() {
       chai.assert.ok(time_entries.length);
       var time_entry_ids = _(time_entries).pluck('id');
       chai.assert.notEqual(time_entry_ids.indexOf(time_entry_id), -1);
+
+      chai.assert.ok(result.pages);
+      chai.assert.typeOf(result.pages, 'number');
+
+      chai.assert.ok(result.page);
+      chai.assert.typeOf(result.page, 'number');
       done();
     });
   });

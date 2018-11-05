@@ -48,7 +48,8 @@ FreshBooks.prototype.getProjects = function(business_id, page, callback) {
     callback = page;
     page = 1;
   }
-  this._get(`projects/business/${business_id}/projects?page=${page}`, function(err, data) {
+  
+  this._get(`projects/business/${business_id}/projects?page=${page}&per_page=100`, function(err, data) {
     if (err) return callback(err);
 
     callback(null, data.projects, data.meta);
@@ -59,8 +60,13 @@ FreshBooks.prototype.pushTimeEntry = function(business_id, data, callback) {
   this._post(`timetracking/business/${business_id}/time_entries`, data, callback);
 }
 
-FreshBooks.prototype.listTimeEntries = function(business_id, callback) {
-  this._get(`timetracking/business/${business_id}/time_entries`, callback);
+FreshBooks.prototype.listTimeEntries = function(business_id, page, callback) {
+  if (!callback) {
+    callback = page;
+    page = 1;
+  }
+
+  this._get(`timetracking/business/${business_id}/time_entries?page=${page}&per_page=100`, callback);
 }
 
 FreshBooks.prototype.removeTimeEntry = function(business_id, time_entry_id, callback) {

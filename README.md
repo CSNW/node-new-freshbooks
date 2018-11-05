@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.org/CSNW/node-new-freshbooks.svg?branch=master)](https://travis-ci.org/CSNW/node-new-freshbooks)
 
-Node.js client that wraps a subset of FreshBooks "new" JSON API.
+Node.js client that wraps a subset of the JSON API for the "new" FreshBooks.
 
 The [tests](https://travis-ci.org/CSNW/node-new-freshbooks) are run daily on Travis; they test FreshBooks' API as well this library, so that we know immediately if there has been a breaking API change.
 
@@ -60,7 +60,7 @@ These are derived from data deeper in the data structure returned by the FreshBo
 
 ## Getting Projects for a User's Business
 
-To get a list of projects for a user, call `getProjects(business_id, callback)`:
+To get a list of projects for a user, call `getProjects(business_id[, page], callback)`:
 
 ```javascript
 var business_id = me.business_ids[0];
@@ -78,7 +78,7 @@ The tests guarantee that the array returned by the FreshBooks API consists of ob
 * `updated_at` (String)
 * `active` (Boolean)
 
-It also guarantees that the meta object includes the following properties for paging through data when there are too many records for FreshBooks to return them all in a single response:
+It also guarantees that the meta object includes the following properties for paging through data when there are more than 100 records in FreshBooks:
 
 * `pages` (Number)
 * `page` (Number)
@@ -87,7 +87,7 @@ It also guarantees that the meta object includes the following properties for pa
 
 Time entries can be created, deleted and listed via the following methods:
 
-### pushTimeEntry(business_id, payload, function(err, result) { })
+### pushTimeEntry(business_id, payload, callback)
 
 ```javascript
 freshbooks.pushTimeEntry(business_id, {
@@ -104,7 +104,7 @@ freshbooks.pushTimeEntry(business_id, {
 });
 ```
 
-### removeTimeEntry(business_id, time_entry_id, function(err, response) { })
+### removeTimeEntry(business_id, time_entry_id, callback)
 
 ```javascript
 freshbooks.removeTimeEntry(biz_id, time_entry_id, function(err, res) {
@@ -114,7 +114,7 @@ freshbooks.removeTimeEntry(biz_id, time_entry_id, function(err, res) {
 });
 ```
 
-### listTimeEntries(business_id, function(err, result) { })
+### listTimeEntries(business_id[, page], callback)
 
 ```javascript
 freshbooks.listTimeEntries(biz_id, function(err, result) {
@@ -123,6 +123,11 @@ freshbooks.listTimeEntries(biz_id, function(err, result) {
   // `result.time_entries` is an array of objects with (at least) `id`, `duration` & `started_at` properties
 });
 ```
+
+The tests guarantee that the result object includes the following properties for paging through data when there are more than 100 records in FreshBooks:
+
+* `pages` (Number)
+* `page` (Number)
 
 ## Example
 
