@@ -4,7 +4,7 @@
 
 Node.js client that wraps a subset of the JSON API for the "new" FreshBooks.
 
-The [tests](https://travis-ci.org/CSNW/node-new-freshbooks) are run daily on Travis; they test FreshBooks' API as well this library, so that we know immediately if there has been a breaking API change.
+The [tests](https://travis-ci.org/CSNW/node-new-freshbooks) are run daily on Travis; they test FreshBooks' API as well this library, so that we are alerted if there has been a breaking API change.
 
 ## Authentication
 
