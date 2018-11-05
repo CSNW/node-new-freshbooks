@@ -117,14 +117,14 @@ freshbooks.removeTimeEntry(biz_id, time_entry_id, function(err, res) {
 ### listTimeEntries(business_id[, page], callback)
 
 ```javascript
-freshbooks.listTimeEntries(biz_id, function(err, result) {
+freshbooks.listTimeEntries(biz_id, function(err, time_entries, meta) {
   if (err) throw err;
 
-  // `result.time_entries` is an array of objects with (at least) `id`, `duration` & `started_at` properties
+  // `time_entries` is an array of objects with (at least) `id`, `duration` & `started_at` properties
 });
 ```
 
-The tests guarantee that the result object includes the following properties for paging through data when there are more than 100 records in FreshBooks:
+The tests guarantee that the `meta` object includes the following properties for paging through data when there are more than 100 records in FreshBooks:
 
 * `pages` (Number)
 * `page` (Number)

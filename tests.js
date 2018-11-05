@@ -217,19 +217,18 @@ describe('freshbooks', function() {
   });
 
   it('should list new time', function(done) {
-    freshbooks.listTimeEntries(biz_id, function(err, result) {
+    freshbooks.listTimeEntries(biz_id, function(err, time_entries, meta) {
       if (err) return done(err);
 
-      var time_entries = result.time_entries;
       chai.assert.ok(time_entries.length);
       var time_entry_ids = _(time_entries).pluck('id');
       chai.assert.notEqual(time_entry_ids.indexOf(time_entry_id), -1);
 
-      chai.assert.ok(result.pages);
-      chai.assert.typeOf(result.pages, 'number');
+      chai.assert.ok(meta.pages);
+      chai.assert.typeOf(meta.pages, 'number');
 
-      chai.assert.ok(result.page);
-      chai.assert.typeOf(result.page, 'number');
+      chai.assert.ok(meta.page);
+      chai.assert.typeOf(meta.page, 'number');
       done();
     });
   });

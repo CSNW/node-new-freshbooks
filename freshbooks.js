@@ -66,7 +66,11 @@ FreshBooks.prototype.listTimeEntries = function(business_id, page, callback) {
     page = 1;
   }
 
-  this._get(`timetracking/business/${business_id}/time_entries?page=${page}&per_page=100`, callback);
+  this._get(`timetracking/business/${business_id}/time_entries?page=${page}&per_page=100`, function(err, data) {
+    if (err) return callback(err);
+
+    callback(null, data.time_entries, data.meta);
+  });
 }
 
 FreshBooks.prototype.removeTimeEntry = function(business_id, time_entry_id, callback) {
